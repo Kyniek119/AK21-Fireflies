@@ -20,7 +20,7 @@ int main(int argc, char* argv[]){
       pomoc();
       return 0;
     } else if(strncmp(argv[i], "-n", 2) == 0){ //ilosc swietlikow
-      n = atoi(&argv[i][1]);
+      n = atoi(&argv[i][2]);
     } else if(strncmp(argv[i], "-d", 2) == 0){ //wymiar problemu
       d = atoi(&argv[i][2]);
     } else if(strncmp(argv[i], "-ng", 3) == 0){ //maksymalna ilosc generacji

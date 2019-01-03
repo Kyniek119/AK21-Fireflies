@@ -24,7 +24,7 @@ int main(int argc, char* argv[]){
     } else if(strncmp(argv[i], "-d", 2) == 0){ //wymiar problemu
       d = atoi(&argv[i][2]);
     } else if(strncmp(argv[i], "-ng", 3) == 0){ //maksymalna ilosc generacji
-      MaxGeneracji = atoi(&argv[i][2]);
+      MaxGeneracji = atoi(&argv[i][3]);
     } else if(strncmp(argv[i], "-a", 2) == 0){ //wspolczynnik alpha
       alpha = atof(&argv[i][2]);
     } else if(strncmp(argv[i], "-b", 2) == 0){ //wspolczynnik beta
