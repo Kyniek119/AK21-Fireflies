@@ -4,7 +4,7 @@
 #include <Firefly_func.h>
 #include <Funkcje.h>
 
-#define PODGLAD 1
+#define PODGLAD 0
 #define MAX_D 1000
 #define MAX_FFA 1000
 
@@ -17,7 +17,7 @@ double gamma_local;
 
 int Index[MAX_FFA]; //swietliki posortowane po jakosci wyniku
 double ffa[MAX_FFA][MAX_D]; //swietliki
-double ffa_tmp[MAX_FFA][MAX_D]; //nowa generacja
+double ffa_tmp[MAX_FFA][MAX_D]; //bufor pomocniczy
 double f[MAX_FFA]; //wartosc funkcji
 double I[MAX_FFA]; //intensywnosc swiecenia
 double nbest[MAX_FFA]; //najlepsze dotychczasowe rozwiazanie
@@ -29,7 +29,10 @@ unsigned int seed = 1;
 
 
 typedef double (*FunctionalCallback)(int dimension, double sol[MAX_D]);
-FunctionalCallback funkcja = &funkcja1;
+FunctionalCallback funkcja = &funkcja2;
+
+typedef void (*InitializationCallback)(int dimension, double sol[MAX_D]);
+InitializationCallback inicjalizacja_danych = &init2;
 
 void inicjalizuj_ffa();
 void inicjalizuj_funkcje(int numer_funkcji);
@@ -40,17 +43,10 @@ void move_ffa();
 void replace_ffa();
 double reduce_alpha(double alpha, int numer_generacji);
 
-void ffa_symulation(int n, int d, int maxGeneracji, double alpha, double beta, double gamma){
-  printf("Funkcja otrzymala parametry:\n");
-  printf(" n = %d\n", n);
-  printf(" d = %d\n", d);
-  printf(" ng = %d\n", maxGeneracji);
-  printf(" a = %.2f\n", alpha);
-  printf(" b = %.2f\n", beta);
-  printf(" g = %.2f\n", gamma);
+void ffa_symulation(int n, int d, int maxGeneracji, double alpha, double beta, double gamma, int numer_funkcji){
 
   inicjalizacja_zmiennych(n, d, maxGeneracji, alpha, beta, gamma);
-  inicjalizuj_funkcje(1);
+  inicjalizuj_funkcje(numer_funkcji);
 
   int numer_generacji = 1; //licznik generacji
 
@@ -62,9 +58,10 @@ void ffa_symulation(int n, int d, int maxGeneracji, double alpha, double beta, d
   pokaz_ffa(numer_generacji);
 #endif
 
+  //glowna petla, wykonywana dla kazdej generacji
   int i,j;  
   while(numer_generacji <= limit_generacji_local){
-    alpha_local = reduce_alpha(alpha_local, numer_generacji);
+    //alpha_local = reduce_alpha(alpha_local, numer_generacji);
 
     for(i=0;i<n_local;i++){
       f[i] = funkcja(d_local, ffa[i]);
@@ -105,24 +102,29 @@ void inicjalizacja_zmiennych(int n, int d, int maxGeneracji, double alpha, doubl
 void inicjalizuj_funkcje(int numer_funkcji){
   switch(numer_funkcji){
 	case 1: funkcja = &funkcja1;
+		inicjalizacja_danych = &init1;
+        case 2: funkcja = &funkcja2;
+		inicjalizacja_danych = &init2;
 	default: funkcja = &funkcja1;
+                 inicjalizacja_danych = &init1;
   }
 } 
 
 void inicjalizuj_ffa(){
   int i,j;
   double r;
+  double dane[MAX_D];
+  inicjalizacja_danych(d_local, dane);
 
-  //inicjalizacja gornego i dolnedo ograniczenia
   for(i=0;i<d_local;i++){
-    lb[i] = -100.0;
-    ub[i] = 200.0;
+    lb[i] = -10.0;
+
+    ub[i] = 100.0;
   }
 
   for(i=0;i<n_local;i++){
     for(j=0;j<d_local;j++){
-      r = ((double)rand()/((double)(RAND_MAX)+(double)(1)));
-      ffa[i][j] = r * (ub[j] - lb[j]) + lb[j];
+      ffa[i][j] = dane[j];
     }
     f[i] = 1.0;
     I[i] = f[i];
@@ -174,7 +176,7 @@ void findLimits(int k){
   int i;
   for(i=0;i<d_local;i++){
     if(ffa[k][i] < lb[i]) ffa[k][i] = lb[i];
-    if(ffa[k][i] > ub[i]) ffa[k][i] = ub[i]; 
+    if(ffa[k][i] > ub[i]) ffa[k][i] = ub[i];
   }
 }
 
@@ -192,7 +194,7 @@ void move_ffa(){
         r += (ffa[i][k] - ffa[j][k]) * (ffa[i][k] - ffa[j][k]);
       }
       r = sqrt(r);
-      if(I[i] > I[j]){ //przesun swietlika i w kierunku swietlika j
+      if(I[i] >= I[j]){ //przesun swietlika i w kierunku swietlika j
         //zmodyfikuj atrakcyjność
         double beta0 = 1.0;
         beta = (beta0 - beta_local)*exp(-gamma_local*pow(r, 2.0)) + beta_local;
@@ -200,8 +202,9 @@ void move_ffa(){
         for(k=0;k<d_local;k++){
           r = ((double)rand_r(&seed) / ((double)(RAND_MAX) + (double)(1)));
           double tmpf = alpha_local * (r - 0.5) * scale;
+		//printf("ub[i]: %.4f, lb[i]: %.4f, Scale: %.4f, beta: %.4f, r: %.4f, tmp_f: %.4f\n", ub[i], lb[i], scale, beta, r, tmpf);
           //utworz nowe rozwiazanie
-          ffa[i][k] = ffa[i][k] * (1.0 - beta) + ffa_tmp[j][k] * beta + tmpf;
+          ffa[i][k] = ffa[i][k] + beta * (ffa_tmp[j][k] - ffa[i][k]) + tmpf;
         }
       }
     }
@@ -212,6 +215,7 @@ void move_ffa(){
 double reduce_alpha(double alpha, int numer_generacji){
   double delta;
   delta = 1.0 - pow((pow(10.0, -4.0)/0.9), 1.0/(double) numer_generacji);
+	printf("Nowa alpha: %.4f\n", (1-delta)*alpha);
   return (1 - delta) * alpha;
 }
 

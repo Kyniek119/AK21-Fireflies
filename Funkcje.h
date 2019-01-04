@@ -1,4 +1,5 @@
 
+void init1(int dimension, double* sol);
 double funkcja1(int dimension, double* sol);
 
 void init2(int dimension, double* sol);

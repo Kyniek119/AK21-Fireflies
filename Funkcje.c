@@ -1,6 +1,13 @@
 #include <math.h>
 #include <Funkcje.h>
 
+//funkcja "init1" inicjalizuje tablice wartosci dla funkcji "funkcja1", jest ona zapisywana w dostarczonym buforze "sol".
+void init1(int dimension, double* sol){
+  int i;
+  for(i=0;i<dimension;i++){
+    sol[i] = 3.0;
+  }
+}
 
 //implementacja "1. Quadratic function" z funkcji testowych do zadań optymalizacji.
 double funkcja1(int dimension, double* sol){
