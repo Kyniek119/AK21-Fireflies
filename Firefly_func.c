@@ -16,11 +16,8 @@ double alpha_local;
 double beta_local;
 double gamma_local;
 
-int Index[MAX_FFA]; //swietliki posortowane po jakosci wyniku
 double ffa[MAX_FFA][MAX_D]; //swietliki
 double f[MAX_FFA]; //wartosc funkcji
-double I[MAX_FFA]; //intensywnosc swiecenia
-double nbest[MAX_FFA]; //najlepsze dotychczasowe rozwiazanie
 
 double fbest; //najlepszy wynik obecnej populacji
 double global_best = DBL_MAX; //najlepszy wynik globalnie
@@ -43,7 +40,6 @@ void inicjalizacja_zmiennych(int n, int d, int maxGeneracji, double alpha, doubl
 void pokaz_ffa(int numer_generacji);
 void sort_ffa();
 void move_ffa();
-void replace_ffa();
 
 void ffa_symulation(int n, int d, int maxGeneracji, double alpha, double beta, double gamma, int numer_funkcji){
 
@@ -51,8 +47,6 @@ void ffa_symulation(int n, int d, int maxGeneracji, double alpha, double beta, d
   inicjalizuj_funkcje(numer_funkcji);
 
   int numer_generacji = 1; //licznik generacji
-
-  srand(1);
 
   //inicjalizacja roju swietlikow
   inicjalizuj_ffa();
@@ -67,14 +61,10 @@ void ffa_symulation(int n, int d, int maxGeneracji, double alpha, double beta, d
 
     for(i=0;i<n_local;i++){
       f[i] = funkcja(d_local, ffa[i]);
-      I[i] = f[i];
     }
     sort_ffa();
 
-    for(i=0;i<d_local;i++){
-      nbest[i] = ffa[0][i];
-    }
-    fbest = I[0];
+    fbest = f[0];
     if(fbest < global_best)
       global_best = fbest;
 
@@ -126,30 +116,19 @@ void inicjalizuj_ffa(){
       ffa[i][j] = dane[j];
     }
     f[i] = 1.0;
-    I[i] = f[i];
   }
 }
 
 void sort_ffa(){
   int i,j;
-  //inicjalizacja indeksow
-  for(i=0;i<n_local;i++){
-    Index[i] = i;
-  }
 
   //sortowanie babelkowe
   for(i=0;i<n_local;i++){
     for(j=i+1;j<n_local;j++){
-      if(I[i] > I[j]){
-        double z = I[i]; //zamiana atrakcyjnosci
-        I[i] = I[j];
-        I[j] = z;
-        z = f[i]; //zamiana wartosci funkcji
+      if(f[i] > f[j]){
+        double z = f[i]; //zamiana wartosci funkcji
         f[i] = f[j];
         f[j] = z;
-        int k = Index[i]; //zamiana indeksow
-        Index[i] = Index[j];
-        Index[j] = k;
       }
     }
   }
@@ -168,7 +147,7 @@ void move_ffa(){
         r += (ffa[i][k] - ffa[j][k]) * (ffa[i][k] - ffa[j][k]);
       }
       r = sqrt(r);
-      if(I[i] < I[j]){ //przesun swietlika i w kierunku swietlika j
+      if(f[j] > f[i]){ //przesun swietlika i w kierunku swietlika j
 
         //zmodyfikuj atrakcyjność
         beta = beta_local*exp(-gamma_local*pow(r, 2.0));
