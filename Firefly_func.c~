@@ -61,7 +61,6 @@ void ffa_symulation(int n, int d, int maxGeneracji, double alpha, double beta, d
   //glowna petla, wykonywana dla kazdej generacji
   int i,j;  
   while(numer_generacji <= limit_generacji_local){
-    alpha_local = reduce_alpha(alpha_local, numer_generacji);
 
     for(i=0;i<n_local;i++){
       f[i] = funkcja(d_local, ffa[i]);
@@ -202,21 +201,16 @@ void move_ffa(){
         for(k=0;k<d_local;k++){
           r = ((double)rand_r(&seed) / ((double)(RAND_MAX) + (double)(1)));
           double tmpf = alpha_local * (r - 0.5) * scale;
-		//printf("ub[i]: %.4f, lb[i]: %.4f, Scale: %.4f, beta: %.4f, r: %.4f, tmp_f: %.4f\n", ub[i], lb[i], scale, beta, r, tmpf);
+//printf("ub[i]: %.4f, lb[i]: %.4f, Scale: %.4f, beta: %.4f, r: %.4f, tmp_f: %.4f\n", ub[i], lb[i], scale, beta, r, tmpf);
+printf("Rownianie: %.4f + %.4f * ( %.4f - %.4f) + %.4f",ffa[i][k], beta, ffa_tmp[j][k], ffa[i][k], tmpf);
           //utworz nowe rozwiazanie
           ffa[i][k] = ffa[i][k] + beta * (ffa_tmp[j][k] - ffa[i][k]) + tmpf;
+printf("nowy x: %.4f\n", ffa[i][k]);
         }
       }
     }
     findLimits(i);
   }
-}
-
-double reduce_alpha(double alpha, int numer_generacji){
-  double delta;
-  delta = 1.0 - pow((pow(10.0, -4.0)/0.9), 1.0/(double) numer_generacji);
-	printf("Nowa alpha: %.4f\n", (1-delta)*alpha);
-  return (1 - delta) * alpha;
 }
 
 void pokaz_ffa(int numer_generacji){
