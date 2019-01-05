@@ -34,7 +34,7 @@ double funkcja2(int dimension, double* sol){
   double sum = 0.0;
   int i;
   int suma_do = (int)(dimension/4);
-  for(i=2;i<suma_do;i++){
+  for(i=1;i<=suma_do;i++){
     sum+= 	100*pow((sol[4*i-2]-pow(sol[4*i-3],2.0)),2.0)
 		+pow((1-sol[4*i-3]),2.0)
 		+90*pow((sol[4*i]-pow(sol[4*i-1],2.0)),2.0)

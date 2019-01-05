@@ -2,7 +2,7 @@
 #include <Funkcje.h>
 
 //funkcja "init1" inicjalizuje tablice wartosci dla funkcji "funkcja1", jest ona zapisywana w dostarczonym buforze "sol".
-void init2(int dimension, double* sol){
+void init1(int dimension, double* sol){
   int i;
   for(i=0;i<dimension;i++){
     sol[i] = 3.0;
@@ -34,7 +34,7 @@ double funkcja2(int dimension, double* sol){
   double sum = 0.0;
   int i;
   int suma_do = (int)(dimension/4);
-  for(i=2;i<suma_do;i++){
+  for(i=1;i<suma_do;i++){
     sum+= 	100*pow((sol[4*i-2]-pow(sol[4*i-3],2.0)),2.0)
 		+pow((1-sol[4*i-3]),2.0)
 		+90*pow((sol[4*i]-pow(sol[4*i-1],2.0)),2.0)

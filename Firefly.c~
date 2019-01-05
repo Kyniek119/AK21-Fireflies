@@ -9,8 +9,8 @@ int main(int argc, char* argv[]){
   int MaxGeneracji = 20;
   int funkcja = 1;
   double alpha = 0.5;
-  double beta = 0.2;
-  double gamma = 1.0;
+  double beta = 1;
+  double gamma = 0.01; //duza wartosc powoduje berdzo losowe przeszukiwanie przestrzeni
 
   int i = 0;
   void pomoc();
@@ -41,7 +41,7 @@ int main(int argc, char* argv[]){
   }
 
   //inicjalizacja generatora liczb losowych
-  ffa_symulation(n, d, MaxGeneracji, alpha, beta, gamma);
+  ffa_symulation(n, d, MaxGeneracji, alpha, beta, gamma, funkcja);
   return(0);
 }
 
