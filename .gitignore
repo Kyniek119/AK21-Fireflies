@@ -1,2 +1,4 @@
 #ignore *.o files
 *.o
+#ignore *.h~ files
+*.h~
