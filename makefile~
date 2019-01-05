@@ -1,9 +1,0 @@
-CC=gcc
-CFLAGS=-I.
-DEPS = Firefly_func.h
-
-%.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS) 
-
-Firefly: Firefly.o Firefly_func.o
-	$(CC) -o Firefly Firefly.o Firefly_func.o -fopenmp -lm
