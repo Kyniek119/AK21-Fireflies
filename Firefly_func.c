@@ -10,6 +10,7 @@
 #define MAX_D 1000
 #define MAX_FFA 1000
 
+//lokalne wartosci parametrow
 int n_local;
 int d_local;
 int limit_generacji_local;
@@ -20,6 +21,7 @@ double gamma_local;
 double ffa[MAX_FFA][MAX_D]; //swietliki
 double ffa_next_gen[MAX_FFA][MAX_D]; //zmienna do przechowywania nowej generacji.
 double f[MAX_FFA]; //wartosc funkcji
+int Index[MAX_FFA]; //index wiazacy wartosc funkcji ze swietlikiem, pozwoli uniknac kopiowania parametrow swietlikow
 
 double fbest; //najlepszy wynik obecnej populacji
 double global_best = DBL_MAX; //najlepszy wynik globalnie
@@ -40,7 +42,7 @@ InitializationCallback inicjalizacja_danych = &init2;
 //funkcje pomocnicze
 void inicjalizuj_ffa();
 void inicjalizuj_funkcje(int numer_funkcji);
-void inicjalizacja_zmiennych(int n, int d, int maxGeneracji, double alpha, double beta, double gamma);
+void inicjalizacja_zmiennych(int n, int d, int maxGeneracji, double alpha, double beta, double gamma, char* nazwa_pliku_wynikowego);
 void pokaz_ffa(int numer_generacji);
 void pokaz_rozwiazanie();
 void replace_ffa(double old[MAX_FFA][MAX_D], double new[MAX_FFA][MAX_D]);
@@ -49,11 +51,8 @@ void move_ffa();
 
 void ffa_symulation(int n, int d, int maxGeneracji, double alpha, double beta, double gamma, int numer_funkcji, char* nazwa_pliku_wynikowego){
 
-  inicjalizacja_zmiennych(n, d, maxGeneracji, alpha, beta, gamma);
+  inicjalizacja_zmiennych(n, d, maxGeneracji, alpha, beta, gamma, nazwa_pliku_wynikowego);
   inicjalizuj_funkcje(numer_funkcji);
-  if( nazwa_pliku_wynikowego != NULL){
-    plik_wynikowy = fopen(nazwa_pliku_wynikowego, "w");
-  }
 
   int numer_generacji = 1; //licznik generacji
 
@@ -105,13 +104,17 @@ void ffa_symulation(int n, int d, int maxGeneracji, double alpha, double beta, d
 
 }
 
-void inicjalizacja_zmiennych(int n, int d, int maxGeneracji, double alpha, double beta, double gamma){
+void inicjalizacja_zmiennych(int n, int d, int maxGeneracji, double alpha, double beta, double gamma, char* nazwa_pliku_wynikowego){
   n_local = n;
   d_local = d;
   limit_generacji_local = maxGeneracji;
   alpha_local = alpha;
   beta_local = beta;
   gamma_local = gamma;
+
+  if( nazwa_pliku_wynikowego != NULL){
+    plik_wynikowy = fopen(nazwa_pliku_wynikowego, "w");
+  }
 }
 
 void inicjalizuj_funkcje(int numer_funkcji){
