@@ -11,6 +11,7 @@ int main(int argc, char* argv[]){
   double alpha = 0.5;
   double beta = 1;
   double gamma = 0.01; //duza wartosc powoduje berdzo losowe przeszukiwanie przestrzeni
+  char* nazwa_pliku_wynikowego = "Firefly_output.txt";
 
   int i = 0;
   void pomoc();
@@ -34,6 +35,8 @@ int main(int argc, char* argv[]){
       gamma = atof(&argv[i][2]);
     } else if(strncmp(argv[i], "-f", 2) == 0){ //numer funkcji
       funkcja = atoi(&argv[i][2]);
+    } else if(strncmp(argv[i], "-o", 2) == 0){ //nazwa pliku wynikowego
+      nazwa_pliku_wynikowego = &argv[i][2];
     } else {
       printf("Error: Niepoprawny parametr: %s .\nProgram zakonczyl dzilanie.\n", argv[i]);
       return -1;
@@ -41,7 +44,7 @@ int main(int argc, char* argv[]){
   }
 
   //inicjalizacja generatora liczb losowych
-  ffa_symulation(n, d, MaxGeneracji, alpha, beta, gamma, funkcja);
+  ffa_symulation(n, d, MaxGeneracji, alpha, beta, gamma, funkcja, nazwa_pliku_wynikowego);
   return(0);
 }
 
@@ -55,4 +58,5 @@ void pomoc(){
   printf("         -a = wspolczynnik alpha\n");
   printf("         -b = wspolczynnik beta\n");
   printf("         -c = wspolczynnik gamma\n");
+  printf("         -o = nazwa pliku wynikowego\n");
 }
