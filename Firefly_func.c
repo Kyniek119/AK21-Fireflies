@@ -122,6 +122,9 @@ void inicjalizuj_funkcje(int numer_funkcji){
         case 2: funkcja = &funkcja2;
 		inicjalizacja_danych = &init2;
 		break;
+        case 3: funkcja = &funkcja3;
+		inicjalizacja_danych = &init3;
+		break;
 	default: funkcja = &funkcja1;
                  inicjalizacja_danych = &init1;
 		break;
@@ -173,7 +176,7 @@ void move_ffa(){
   int i,j,k;
   double r,beta;
 
-
+#pragma omp parallel for private(i,j,k,r,beta)
   for(i=0;i<ilosc_swietlikow;i++){
     for(j=i;j>=0;j--){
       //oblicz dlugosc r pomiedzy i-tym i j-tym swietlikiek

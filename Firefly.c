@@ -40,7 +40,7 @@ int main(int argc, char* argv[]){
       if(gamma < 0 || gamma > 10)  { printf("Niepoprawna wartość parametru gamma: %f. Dostepne wartosci <0, 10>.\n",gamma); return -2;}
     } else if(strncmp(argv[i], "-f", 2) == 0){ //numer funkcji
       funkcja = atoi(&argv[i][2]);
-      if(funkcja < 0 || funkcja > 2)  { printf("Niepoprawna wartość parametru funkcja: %d. Dostepne wartosci (1, 2).\n",funkcja); return -2;}
+      if(funkcja < 0 || funkcja > 3)  { printf("Niepoprawna wartość parametru funkcja: %d. Dostepne wartosci (1, 2, 3).\n",funkcja); return -2;}
     } else if(strncmp(argv[i], "-o", 2) == 0){ //nazwa pliku wynikowego
       nazwa_pliku_wynikowego = &argv[i][2];
     } else {
