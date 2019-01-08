@@ -11,9 +11,9 @@
 #define MAX_FFA 1000
 
 //lokalne wartosci parametrow
-int n_local;
-int d_local;
-int limit_generacji_local;
+int ilosc_swietlikow;
+int wymiar_problemu;
+int limit_generacji;
 double alpha_local;
 double beta_local;
 double gamma_local;
@@ -34,10 +34,10 @@ FILE* plik_wynikowy = NULL;
 
 
 typedef double (*FunctionalCallback)(int dimension, double sol[MAX_D]);
-FunctionalCallback funkcja = &funkcja2;
+FunctionalCallback funkcja = &funkcja1;
 
 typedef void (*InitializationCallback)(int dimension, double sol[MAX_D]);
-InitializationCallback inicjalizacja_danych = &init2;
+InitializationCallback inicjalizacja_danych = &init1;
 
 //funkcje pomocnicze
 void inicjalizuj_ffa();
@@ -49,9 +49,9 @@ void replace_ffa(double old[MAX_FFA][MAX_D], double new[MAX_FFA][MAX_D]);
 void sort_ffa();
 void move_ffa();
 
-void ffa_symulation(int n, int d, int maxGeneracji, double alpha, double beta, double gamma, int numer_funkcji, char* nazwa_pliku_wynikowego){
+void ffa_symulation(int n, int d, int g, double alpha, double beta, double gamma, int numer_funkcji, char* nazwa_pliku_wynikowego){
 
-  inicjalizacja_zmiennych(n, d, maxGeneracji, alpha, beta, gamma, nazwa_pliku_wynikowego);
+  inicjalizacja_zmiennych(n, d, g, alpha, beta, gamma, nazwa_pliku_wynikowego);
   inicjalizuj_funkcje(numer_funkcji);
 
   int numer_generacji = 1; //licznik generacji
@@ -65,17 +65,17 @@ void ffa_symulation(int n, int d, int maxGeneracji, double alpha, double beta, d
   int i,j;  
 
   start = clock();
-  while(numer_generacji <= limit_generacji_local){
+  while(numer_generacji <= limit_generacji){
 
-    for(i=0;i<n_local;i++){
-      f[i] = funkcja(d_local, ffa[i]);
+    for(i=0;i<ilosc_swietlikow;i++){
+      f[i] = funkcja(wymiar_problemu, ffa[Index[i]]);
     }
     sort_ffa();
 
     fbest = f[0];
     if(fbest < global_best){
       global_best = fbest;
-      memcpy(global_best_param, ffa[0], sizeof(double) * MAX_D);
+      memcpy(global_best_param, ffa[Index[0]], sizeof(double) * MAX_D);
     }
 
     move_ffa();
@@ -96,18 +96,15 @@ void ffa_symulation(int n, int d, int maxGeneracji, double alpha, double beta, d
   if(plik_wynikowy != NULL){
     fprintf(plik_wynikowy, "Koniec optymalizacji. Najlepszy wynik: %.4f, w czasie: %5.1fms\n",global_best, czas_wykonania * 1000);
   }
-  fclose(plik_wynikowy);
-
-
-  
+  fclose(plik_wynikowy);  
   return;
 
 }
 
-void inicjalizacja_zmiennych(int n, int d, int maxGeneracji, double alpha, double beta, double gamma, char* nazwa_pliku_wynikowego){
-  n_local = n;
-  d_local = d;
-  limit_generacji_local = maxGeneracji;
+void inicjalizacja_zmiennych(int n, int d, int g, double alpha, double beta, double gamma, char* nazwa_pliku_wynikowego){
+  ilosc_swietlikow = n;
+  wymiar_problemu = d;
+  limit_generacji = g;
   alpha_local = alpha;
   beta_local = beta;
   gamma_local = gamma;
@@ -135,13 +132,14 @@ void inicjalizuj_ffa(){
   int i,j;
   double r;
   double dane[MAX_D];
-  inicjalizacja_danych(d_local, dane);
+  inicjalizacja_danych(wymiar_problemu, dane);
 
-  for(i=0;i<n_local;i++){
-    for(j=0;j<d_local;j++){
+  for(i=0;i<ilosc_swietlikow;i++){
+    for(j=0;j<wymiar_problemu;j++){
       ffa[i][j] = dane[j];
     }
     f[i] = 1.0;
+    Index[i] = i;
   }
 }
 
@@ -149,17 +147,15 @@ void sort_ffa(){
   int i,j;
 
   //sortowanie babelkowe
-  for(i=0;i<n_local;i++){
-    for(j=i+1;j<n_local;j++){
+  for(i=0;i<ilosc_swietlikow;i++){
+    for(j=i+1;j<ilosc_swietlikow;j++){
       if(f[i] > f[j]){
         double z = f[i]; //zamiana wartosci funkcji
         f[i] = f[j];
         f[j] = z;
-
-        double tmp[MAX_D];
-        memcpy(tmp, ffa[i], sizeof(double) * MAX_D);
-        memcpy(ffa[i], ffa[j], sizeof(double) * MAX_D);
-        memcpy(ffa[j], tmp, sizeof(double) * MAX_D);
+        int tmp = Index[i]; //zamiana indeksow
+        Index[i] = Index[j];
+        Index[j] = tmp;
       }
     }
   }
@@ -168,8 +164,8 @@ void sort_ffa(){
 
 void replace_ffa(double old[MAX_FFA][MAX_D], double new[MAX_FFA][MAX_D]){
   int i;  
-  for(i=0;i<n_local;i++){
-    memcpy(ffa[i], ffa_next_gen[i], sizeof(double) * MAX_D);
+  for(i=0;i<ilosc_swietlikow;i++){
+    memcpy(ffa[Index[i]], ffa_next_gen[Index[i]], sizeof(double) * MAX_D);
   }
 }
 
@@ -177,36 +173,35 @@ void move_ffa(){
   int i,j,k;
   double r,beta;
 
-  for(i=0;i<n_local;i++){
+
+  for(i=0;i<ilosc_swietlikow;i++){
     for(j=i;j>=0;j--){
       //oblicz dlugosc r pomiedzy i-tym i j-tym swietlikiek
       r = 0.0;
-      for(k=0;k<d_local;k++){
-        r += (ffa[i][k] - ffa[j][k]) * (ffa[i][k] - ffa[j][k]);
+      for(k=0;k<wymiar_problemu;k++){
+        r += (ffa[Index[i]][k] - ffa[Index[j]][k]) * (ffa[Index[i]][k] - ffa[Index[j]][k]);
       }
       r = sqrt(r);
-      if(f[i] > f[j]){ //przesun swietlika i w kierunku swietlika j
-
-        //zmodyfikuj atrakcyjność
-        beta = beta_local*exp(-gamma_local*pow(r, 2.0));
-
-        //wygeneruj losowy wektor 
-        for(k=0;k<d_local;k++){
-          r = ((double)rand_r(&seed) / ((double)(RAND_MAX) + (double)(1)));
-          double u = alpha_local * (r - 0.5);
-
-          //utworz nowe rozwiazanie
-          ffa_next_gen[i][k] = ffa[i][k] + beta * (ffa[j][k] - ffa[i][k]) + u;
-        }
-      }
       //przesun swietlika z najlepszym rozwiazaniem
       if(f[i] == fbest){
-        for(k=0;k<d_local;k++){
+        for(k=0;k<wymiar_problemu;k++){
           //wygeneruj losowy wektor
           r = ((double)rand_r(&seed) / ((double)(RAND_MAX) + (double)(1)));
           double u = alpha_local * (r - 0.5);
           //utworz nowe rozwiazanie
-          ffa_next_gen[i][k] = ffa[i][k] + u;
+          ffa_next_gen[Index[i]][k] = ffa[Index[i]][k] + u;
+        }
+      } else if(f[i] > f[j]){ //przesun swietlika i w kierunku swietlika j
+        //zmodyfikuj atrakcyjność
+        beta = beta_local*exp(-gamma_local*pow(r, 2.0));
+
+        //wygeneruj losowy wektor 
+        for(k=0;k<wymiar_problemu;k++){
+          r = ((double)rand_r(&seed) / ((double)(RAND_MAX) + (double)(1)));
+          double u = alpha_local * (r - 0.5);
+
+          //utworz nowe rozwiazanie
+          ffa_next_gen[Index[i]][k] = ffa[Index[i]][k] + beta * (ffa[Index[j]][k] - ffa[Index[i]][k]) + u;
         }
       }
     }
@@ -222,9 +217,9 @@ void pokaz_ffa(int numer_generacji){
 
 void pokaz_rozwiazanie(){
   int i, count;
-  count = (int)(d_local/10);
+  count = (int)(wymiar_problemu/10);
   printf("Parametry po 10 w wierszu.\n");
-  for(i=0;i<d_local/10;i++){
+  for(i=0;i<wymiar_problemu/10;i++){
     printf("%f, %f, %f, %f, %f, %f, %f, %f, %f, %f.\n",
       global_best_param[i],
       global_best_param[i+1],
@@ -236,6 +231,7 @@ void pokaz_rozwiazanie(){
       global_best_param[i+7],
       global_best_param[i+8],
       global_best_param[i+9]);
+
     if(plik_wynikowy != NULL){
       fprintf(plik_wynikowy, "%f, %f, %f, %f, %f, %f, %f, %f, %f, %f.\n",
         global_best_param[i],
@@ -250,7 +246,7 @@ void pokaz_rozwiazanie(){
         global_best_param[i+9]);
     }  
   }
-  for(i=count*10;i<d_local;i++){
+  for(i=count*10;i<wymiar_problemu;i++){
     printf("%f, ",global_best_param[i]);
     if(plik_wynikowy != NULL){
       fprintf(plik_wynikowy,"%f, ",global_best_param[i]);
