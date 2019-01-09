@@ -60,7 +60,7 @@ void pomoc(){
   printf("  Gdzie: -n = ilosc swietlikow (1-1000)\n");
   printf("         -d = wymiar problemu (1-1000)\n");
   printf("         -g = maksymalna ilosc generacji\n");
-  printf("         -f = numer funkcji z zestawu (1-2)\n");
+  printf("         -f = numer funkcji z zestawu (1-3)\n");
   printf("         -a = wspolczynnik alpha\n");
   printf("         -b = wspolczynnik beta\n");
   printf("         -c = wspolczynnik gamma\n");

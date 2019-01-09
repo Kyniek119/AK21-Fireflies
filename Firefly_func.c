@@ -18,6 +18,8 @@ double alpha_local;
 double beta_local;
 double gamma_local;
 
+unsigned int seed;
+
 double ffa[MAX_FFA][MAX_D]; //swietliki
 double ffa_next_gen[MAX_FFA][MAX_D]; //zmienna do przechowywania nowej generacji.
 double f[MAX_FFA]; //wartosc funkcji
@@ -27,7 +29,6 @@ double fbest; //najlepszy wynik obecnej populacji
 double global_best = DBL_MAX; //najlepszy wynik globalnie
 double global_best_param[MAX_D];
 
-unsigned int seed = 1;
 clock_t start, end; //zmienne do pomiaru czasu
 double czas_wykonania;
 FILE* plik_wynikowy = NULL;
@@ -59,7 +60,7 @@ void ffa_symulation(int n, int d, int g, double alpha, double beta, double gamma
   //inicjalizacja roju swietlikow
   inicjalizuj_ffa();
   
-  pokaz_ffa(numer_generacji);
+  //pokaz_ffa(numer_generacji);
 
   //glowna petla, wykonywana dla kazdej generacji
   int i,j;  
@@ -108,6 +109,8 @@ void inicjalizacja_zmiennych(int n, int d, int g, double alpha, double beta, dou
   alpha_local = alpha;
   beta_local = beta;
   gamma_local = gamma;
+
+  seed = time(NULL) ^ getpid();
 
   if( nazwa_pliku_wynikowego != NULL){
     plik_wynikowy = fopen(nazwa_pliku_wynikowego, "w");
@@ -176,8 +179,9 @@ void move_ffa(){
   int i,j,k;
   double r,beta;
 
-#pragma omp parallel for private(i,j,k,r,beta)
+  #pragma omp parallel for private(j,k,r,beta) schedule(dynamic)
   for(i=0;i<ilosc_swietlikow;i++){
+    #pragma omp parallel for private(k,r,beta) shared(i)
     for(j=i;j>=0;j--){
       //oblicz dlugosc r pomiedzy i-tym i j-tym swietlikiek
       r = 0.0;
@@ -188,7 +192,7 @@ void move_ffa(){
       //przesun swietlika z najlepszym rozwiazaniem
       if(f[i] == fbest){
         for(k=0;k<wymiar_problemu;k++){
-          //wygeneruj losowy wektor
+          //wygeneruj losowy wektor;
           r = ((double)rand_r(&seed) / ((double)(RAND_MAX) + (double)(1)));
           double u = alpha_local * (r - 0.5);
           //utworz nowe rozwiazanie
@@ -199,6 +203,7 @@ void move_ffa(){
         beta = beta_local*exp(-gamma_local*pow(r, 2.0));
 
         //wygeneruj losowy wektor 
+        #pragma omp parallel for private(r) shared(i,j,beta)
         for(k=0;k<wymiar_problemu;k++){
           r = ((double)rand_r(&seed) / ((double)(RAND_MAX) + (double)(1)));
           double u = alpha_local * (r - 0.5);
