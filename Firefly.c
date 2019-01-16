@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <Firefly_func.h>
 
 int main(int argc, char* argv[]){
@@ -7,6 +8,7 @@ int main(int argc, char* argv[]){
   int d = 100;
   int g = 20;
   int funkcja = 1;
+  bool multithreading = false;
   double alpha = 0.5;
   double beta = 1;
   double gamma = 0.01; //duza wartosc powoduje berdzo losowe przeszukiwanie przestrzeni
@@ -43,6 +45,8 @@ int main(int argc, char* argv[]){
       if(funkcja < 0 || funkcja > 3)  { printf("Niepoprawna wartość parametru funkcja: %d. Dostepne wartosci (1, 2, 3).\n",funkcja); return -2;}
     } else if(strncmp(argv[i], "-o", 2) == 0){ //nazwa pliku wynikowego
       nazwa_pliku_wynikowego = &argv[i][2];
+    } else if(strncmp(argv[i], "-p", 2) == 0){ //nazwa pliku wynikowego
+      multithreading = true;
     } else {
       printf("Error: Niepoprawny parametr: %s .\nProgram zakonczyl dzilanie.\n", argv[i]);
       return -1;
@@ -50,7 +54,7 @@ int main(int argc, char* argv[]){
   }
 
   //inicjalizacja generatora liczb losowych
-  ffa_symulation(n, d, g, alpha, beta, gamma, funkcja, nazwa_pliku_wynikowego);
+  ffa_symulation(n, d, g, alpha, beta, gamma, funkcja, nazwa_pliku_wynikowego, multithreading);
   return(0);
 }
 
@@ -65,4 +69,5 @@ void pomoc(){
   printf("         -b = wspolczynnik beta\n");
   printf("         -c = wspolczynnik gamma\n");
   printf("         -o = nazwa pliku wynikowego\n");
+  printf("         -p = flaga zrównoleglenia\n");
 }

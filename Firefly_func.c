@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <math.h>
+#include <omp.h>
 #include <string.h>
 #include <time.h>
 #include <float.h>
@@ -17,6 +19,7 @@ int limit_generacji;
 double alpha_local;
 double beta_local;
 double gamma_local;
+bool multithreading_local;
 
 unsigned int seed;
 
@@ -43,16 +46,17 @@ InitializationCallback inicjalizacja_danych = &init1;
 //funkcje pomocnicze
 void inicjalizuj_ffa();
 void inicjalizuj_funkcje(int numer_funkcji);
-void inicjalizacja_zmiennych(int n, int d, int maxGeneracji, double alpha, double beta, double gamma, char* nazwa_pliku_wynikowego);
+void inicjalizacja_zmiennych(int n, int d, int maxGeneracji, double alpha, double beta, double gamma, char* nazwa_pliku_wynikowego, bool multithreading);
 void pokaz_ffa(int numer_generacji);
+void pokaz_parametry_maszyny();
 void pokaz_rozwiazanie();
 void replace_ffa(double old[MAX_FFA][MAX_D], double new[MAX_FFA][MAX_D]);
 void sort_ffa();
 void move_ffa();
 
-void ffa_symulation(int n, int d, int g, double alpha, double beta, double gamma, int numer_funkcji, char* nazwa_pliku_wynikowego){
+void ffa_symulation(int n, int d, int g, double alpha, double beta, double gamma, int numer_funkcji, char* nazwa_pliku_wynikowego, bool multithreading){
 
-  inicjalizacja_zmiennych(n, d, g, alpha, beta, gamma, nazwa_pliku_wynikowego);
+  inicjalizacja_zmiennych(n, d, g, alpha, beta, gamma, nazwa_pliku_wynikowego, multithreading);
   inicjalizuj_funkcje(numer_funkcji);
 
   int numer_generacji = 1; //licznik generacji
@@ -61,6 +65,7 @@ void ffa_symulation(int n, int d, int g, double alpha, double beta, double gamma
   inicjalizuj_ffa();
   
   //pokaz_ffa(numer_generacji);
+  pokaz_parametry_maszyny();
 
   //glowna petla, wykonywana dla kazdej generacji
   int i,j;  
@@ -68,9 +73,11 @@ void ffa_symulation(int n, int d, int g, double alpha, double beta, double gamma
   start = clock();
   while(numer_generacji <= limit_generacji){
 
+    #pragma omp pararell for if(multithreading_local)
     for(i=0;i<ilosc_swietlikow;i++){
       f[i] = funkcja(wymiar_problemu, ffa[Index[i]]);
     }
+
     sort_ffa();
 
     fbest = f[0];
@@ -92,17 +99,17 @@ void ffa_symulation(int n, int d, int g, double alpha, double beta, double gamma
   
   pokaz_rozwiazanie();
 
-  printf("Koniec optymalizacji. Najlepszy wynik: %.4f, w czasie: %5.1fms\n",global_best, czas_wykonania * 1000);
+  printf("Koniec optymalizacji. Najlepszy wynik: %.4f, w czasie: %5.1fms\n",global_best, czas_wykonania*1000);
 
   if(plik_wynikowy != NULL){
-    fprintf(plik_wynikowy, "Koniec optymalizacji. Najlepszy wynik: %.4f, w czasie: %5.1fms\n",global_best, czas_wykonania * 1000);
+    fprintf(plik_wynikowy, "Koniec optymalizacji. Najlepszy wynik: %.4f, w czasie: %5.1fms\n",global_best, czas_wykonania*1000);
   }
   fclose(plik_wynikowy);  
   return;
 
 }
 
-void inicjalizacja_zmiennych(int n, int d, int g, double alpha, double beta, double gamma, char* nazwa_pliku_wynikowego){
+void inicjalizacja_zmiennych(int n, int d, int g, double alpha, double beta, double gamma, char* nazwa_pliku_wynikowego, bool multithreading){
   ilosc_swietlikow = n;
   wymiar_problemu = d;
   limit_generacji = g;
@@ -111,6 +118,7 @@ void inicjalizacja_zmiennych(int n, int d, int g, double alpha, double beta, dou
   gamma_local = gamma;
 
   seed = time(NULL) ^ getpid();
+  multithreading_local = multithreading;
 
   if( nazwa_pliku_wynikowego != NULL){
     plik_wynikowy = fopen(nazwa_pliku_wynikowego, "w");
@@ -179,11 +187,11 @@ void move_ffa(){
   int i,j,k;
   double r,beta;
 
-  #pragma omp parallel for private(j,k,r,beta) schedule(dynamic)
+  #pragma omp parallel for if(multithreading_local)
   for(i=0;i<ilosc_swietlikow;i++){
-    #pragma omp parallel for private(k,r,beta) shared(i)
+    #pragma omp parallel for private (i,k,r,beta) if(multithreading_local)
     for(j=i;j>=0;j--){
-      //oblicz dlugosc r pomiedzy i-tym i j-tym swietlikiek
+      //oblicz wypadkowa dlugosc r pomiedzy i-tym i j-tym swietlikiek
       r = 0.0;
       for(k=0;k<wymiar_problemu;k++){
         r += (ffa[Index[i]][k] - ffa[Index[j]][k]) * (ffa[Index[i]][k] - ffa[Index[j]][k]);
@@ -203,7 +211,7 @@ void move_ffa(){
         beta = beta_local*exp(-gamma_local*pow(r, 2.0));
 
         //wygeneruj losowy wektor 
-        #pragma omp parallel for private(r) shared(i,j,beta)
+        //#pragma omp parallel for private(r) shared(i,j,beta,ffa,ffa_next_gen) if(multithreading_local)
         for(k=0;k<wymiar_problemu;k++){
           r = ((double)rand_r(&seed) / ((double)(RAND_MAX) + (double)(1)));
           double u = alpha_local * (r - 0.5);
@@ -220,6 +228,26 @@ void pokaz_ffa(int numer_generacji){
   printf("Podglad generacji numer: %d, najlepszy wynik: %.4f\n", numer_generacji, fbest);
   if(plik_wynikowy != NULL){
     fprintf(plik_wynikowy, "Podglad generacji numer: %d, najlepszy wynik: %.4f\n", numer_generacji, fbest);
+  }
+}
+
+void pokaz_parametry_maszyny(){
+  printf("OMP_DYNAMIC = %d\n",omp_get_dynamic());
+  printf("OMP_NESTED = %d\n",omp_get_nested());
+  printf("OMP_NUM_THREADS = %d\n",omp_get_max_threads());
+  //printf("OMP_SCHEDULE = %s\n",omp_get_schedule());
+  printf("OMP_THREAD_LIMIT = %d\n",omp_get_thread_limit());
+  printf("OMP_DYNAMIC = %d\n",omp_get_dynamic());
+  printf("Multithreading = %d\n", multithreading_local);
+  
+  if(plik_wynikowy != NULL){
+    fprintf(plik_wynikowy, "OMP_DYNAMIC = %d\n",omp_get_dynamic());
+    fprintf(plik_wynikowy, "OMP_NESTED = %d\n",omp_get_nested());
+    fprintf(plik_wynikowy, "OMP_NUM_THREADS = %d\n",omp_get_max_threads());
+    //fprintf(plik_wynikowy, "OMP_SCHEDULE = %s\n",omp_get_schedule());
+    fprintf(plik_wynikowy, "OMP_THREAD_LIMIT = %d\n",omp_get_thread_limit());
+    fprintf(plik_wynikowy, "OMP_DYNAMIC = %d\n",omp_get_dynamic());
+    fprintf(plik_wynikowy, "Multithreading = %d\n", multithreading_local);
   }
 }
 
