@@ -24,7 +24,7 @@ bool multithreading_local;
 unsigned int seed;
 
 double ffa[MAX_FFA][MAX_D]; //swietliki
-double ffa_next_gen[MAX_FFA][MAX_D]; //zmienna do przechowywania nowej generacji.
+double ffa_prev_gen[MAX_FFA][MAX_D]; //zmienna do przechowywania poprzedniej generacji.
 double f[MAX_FFA]; //wartosc funkcji
 int Index[MAX_FFA]; //index wiazacy wartosc funkcji ze swietlikiem, pozwoli uniknac kopiowania parametrow swietlikow
 
@@ -32,7 +32,7 @@ double fbest; //najlepszy wynik obecnej populacji
 double global_best = DBL_MAX; //najlepszy wynik globalnie
 double global_best_param[MAX_D];
 
-clock_t start, end; //zmienne do pomiaru czasu
+double start, end; //zmienne do pomiaru czasu
 double czas_wykonania;
 FILE* plik_wynikowy = NULL;
 
@@ -70,7 +70,7 @@ void ffa_symulation(int n, int d, int g, double alpha, double beta, double gamma
   //glowna petla, wykonywana dla kazdej generacji
   int i,j;  
 
-  start = clock();
+  start = omp_get_wtime();
   while(numer_generacji <= limit_generacji){
 
     #pragma omp pararell for if(multithreading_local)
@@ -88,14 +88,14 @@ void ffa_symulation(int n, int d, int g, double alpha, double beta, double gamma
 
     move_ffa();
 
-    replace_ffa(ffa, ffa_next_gen); //
+    replace_ffa(ffa, ffa_prev_gen); //
 
     pokaz_ffa(numer_generacji);
 
     numer_generacji++;
   }
-  end = clock();
-  czas_wykonania = ((double) (end - start))/CLOCKS_PER_SEC;
+  end = omp_get_wtime();
+  czas_wykonania = end - start;
   
   pokaz_rozwiazanie();
 
@@ -151,6 +151,7 @@ void inicjalizuj_ffa(){
   for(i=0;i<ilosc_swietlikow;i++){
     for(j=0;j<wymiar_problemu;j++){
       ffa[i][j] = dane[j];
+      ffa_prev_gen[i][j] = dane[j];
     }
     f[i] = 1.0;
     Index[i] = i;
@@ -179,22 +180,25 @@ void sort_ffa(){
 void replace_ffa(double old[MAX_FFA][MAX_D], double new[MAX_FFA][MAX_D]){
   int i;  
   for(i=0;i<ilosc_swietlikow;i++){
-    memcpy(ffa[Index[i]], ffa_next_gen[Index[i]], sizeof(double) * MAX_D);
+    memcpy(new[Index[i]], old[Index[i]], sizeof(double) * MAX_D);
   }
 }
 
 void move_ffa(){
   int i,j,k;
   double r,beta;
+  //int myid, thread_num;
 
-  #pragma omp parallel for if(multithreading_local)
+  #pragma omp parallel for private(r, beta, j, k) if(multithreading_local)
   for(i=0;i<ilosc_swietlikow;i++){
-    #pragma omp parallel for private (i,k,r,beta) if(multithreading_local)
+    //myid = omp_get_thread_num();
+    //thread_num = omp_get_num_threads();
+    //printf("\tCalculations from %d thread from %d threads\n", myid, thread_num);
     for(j=i;j>=0;j--){
-      //oblicz wypadkowa dlugosc r pomiedzy i-tym i j-tym swietlikiek
       r = 0.0;
+      //oblicz wypadkowa dlugosc r pomiedzy i-tym i j-tym swietlikiek
       for(k=0;k<wymiar_problemu;k++){
-        r += (ffa[Index[i]][k] - ffa[Index[j]][k]) * (ffa[Index[i]][k] - ffa[Index[j]][k]);
+        r += (ffa_prev_gen[Index[i]][k] - ffa_prev_gen[Index[j]][k]) * (ffa_prev_gen[Index[i]][k] - ffa_prev_gen[Index[j]][k]);
       }
       r = sqrt(r);
       //przesun swietlika z najlepszym rozwiazaniem
@@ -204,20 +208,18 @@ void move_ffa(){
           r = ((double)rand_r(&seed) / ((double)(RAND_MAX) + (double)(1)));
           double u = alpha_local * (r - 0.5);
           //utworz nowe rozwiazanie
-          ffa_next_gen[Index[i]][k] = ffa[Index[i]][k] + u;
+          ffa[Index[i]][k] = ffa_prev_gen[Index[i]][k] + u;
         }
       } else if(f[i] > f[j]){ //przesun swietlika i w kierunku swietlika j
         //zmodyfikuj atrakcyjność
         beta = beta_local*exp(-gamma_local*pow(r, 2.0));
 
         //wygeneruj losowy wektor 
-        //#pragma omp parallel for private(r) shared(i,j,beta,ffa,ffa_next_gen) if(multithreading_local)
         for(k=0;k<wymiar_problemu;k++){
           r = ((double)rand_r(&seed) / ((double)(RAND_MAX) + (double)(1)));
           double u = alpha_local * (r - 0.5);
-
           //utworz nowe rozwiazanie
-          ffa_next_gen[Index[i]][k] = ffa[Index[i]][k] + beta * (ffa[Index[j]][k] - ffa[Index[i]][k]) + u;
+          ffa[Index[i]][k] = ffa[Index[i]][k] + beta * (ffa_prev_gen[Index[j]][k] - ffa_prev_gen[Index[i]][k]) + u;
         }
       }
     }

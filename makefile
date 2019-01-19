@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-I.
+CFLAGS=-I. -fopenmp
 DEPS = Firefly_func.h Funkcje.h
 
 %.o: %.c $(DEPS)
