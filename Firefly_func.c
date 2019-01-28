@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
+#include <limits.h>
 #include <omp.h>
 #include <string.h>
 #include <time.h>
@@ -68,7 +69,7 @@ void ffa_symulation(int n, int d, int g, double alpha, double beta, double gamma
   pokaz_parametry_maszyny();
 
   //glowna petla, wykonywana dla kazdej generacji
-  int i,j;  
+  int i,j, index_best;  
 
   start = omp_get_wtime();
   while(numer_generacji <= limit_generacji){
@@ -77,13 +78,13 @@ void ffa_symulation(int n, int d, int g, double alpha, double beta, double gamma
     for(i=0;i<ilosc_swietlikow;i++){
       f[i] = funkcja(wymiar_problemu, ffa[Index[i]]);
     }
+ 
+    index_best = find_index_of_local_best(f);
 
-    sort_ffa();
-
-    fbest = f[0];
+    fbest = f[index_best];
     if(fbest < global_best){
       global_best = fbest;
-      memcpy(global_best_param, ffa[Index[0]], sizeof(double) * MAX_D);
+      memcpy(global_best_param, ffa[Index[index_best]], sizeof(double) * MAX_D);
     }
 
     move_ffa();
@@ -116,6 +117,7 @@ void inicjalizacja_zmiennych(int n, int d, int g, double alpha, double beta, dou
   alpha_local = alpha;
   beta_local = beta;
   gamma_local = gamma;
+  fbest = DBL_MAX;
 
   seed = time(NULL) ^ getpid();
   multithreading_local = multithreading;
@@ -158,23 +160,16 @@ void inicjalizuj_ffa(){
   }
 }
 
-void sort_ffa(){
-  int i,j;
-
-  //sortowanie babelkowe
-  for(i=0;i<ilosc_swietlikow;i++){
-    for(j=i+1;j<ilosc_swietlikow;j++){
-      if(f[i] > f[j]){
-        double z = f[i]; //zamiana wartosci funkcji
-        f[i] = f[j];
-        f[j] = z;
-        int tmp = Index[i]; //zamiana indeksow
-        Index[i] = Index[j];
-        Index[j] = tmp;
-      }
-    }
-  }
-
+int find_index_of_local_best(double f[MAX_FFA]){
+  int i, result;
+  double local_best = DBL_MAX;
+   for(i=0; i<ilosc_swietlikow; i++){
+    if(local_best > f[i]){
+      local_best = f[i];
+      result = i;
+    } 
+  } 
+  return result;
 }
 
 void replace_ffa(double old[MAX_FFA][MAX_D], double new[MAX_FFA][MAX_D]){
@@ -187,14 +182,10 @@ void replace_ffa(double old[MAX_FFA][MAX_D], double new[MAX_FFA][MAX_D]){
 void move_ffa(){
   int i,j,k;
   double r,beta;
-  //int myid, thread_num;
 
   #pragma omp parallel for private(r, beta, j, k) if(multithreading_local)
   for(i=0;i<ilosc_swietlikow;i++){
-    //myid = omp_get_thread_num();
-    //thread_num = omp_get_num_threads();
-    //printf("\tCalculations from %d thread from %d threads\n", myid, thread_num);
-    for(j=i;j>=0;j--){
+    for(j=0;j<ilosc_swietlikow;j++){
       r = 0.0;
       //oblicz wypadkowa dlugosc r pomiedzy i-tym i j-tym swietlikiek
       for(k=0;k<wymiar_problemu;k++){
